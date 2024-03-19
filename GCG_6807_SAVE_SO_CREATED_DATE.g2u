@@ -1,0 +1,127 @@
+﻿Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+'ARC#6807
+'Customer: Willington Nameplate
+'		June 2022, Nam Le
+
+
+'The customer is wanting to track creation dates of Quotes, Sales Orders, Work Orders, and Purchase Orders to satisfy a requirement by their Quality process and KPI measurements.
+
+'In this project we will add:
+'	A custom datatable to store information for Created Date for transactions Quotes, Sales Order, Work Order, Purchase Order
+'	A new field in each transaction's header screen to display the Created Date
+
+
+'This script save info for Created Date 
+'hook: 
+'	- SO 11872
+'	- WO 16651
+'	- WO-BOM 17262
+'	- PO 16880
+'	- Quote 10923
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	v.Local.sSQL.Declare(String)
+	v.Local.sType.Declare(String)
+	v.Local.sID.Declare(String)
+	v.Local.sRet.Declare(String)
+	v.Local.iCounter.Declare(Long)
+	v.Local.sFullWO.Declare(String)
+	v.Local.bBOM.Declare(Boolean, False)
+	
+	f.Intrinsic.Control.SelectCase(v.Caller.Hook)
+		'Sales Order
+		f.Intrinsic.Control.Case("11872")
+			v.Local.sType.Set("SO")
+			f.Intrinsic.String.LPad(v.Passed.000003,"0",7,v.Local.sID)
+		
+		'Purchase Order
+		f.Intrinsic.Control.Case("16880")
+			v.Local.sType.Set("PO")
+			f.Intrinsic.String.LPad(v.Passed.000008,"0",7,v.Local.sID)
+		
+		'WO
+		f.Intrinsic.Control.Case("16651")
+			v.Local.sType.Set("WO")
+'			f.Intrinsic.String.LPad(v.Passed.000009,"0",6,v.Local.sID)
+			f.Intrinsic.String.Build("{0}-{1}", v.Passed.009000, v.Passed.009001, v.Local.sID)
+		
+		'Quote
+		f.Intrinsic.Control.Case("10923")
+			v.Local.sType.Set("QT")
+			f.Intrinsic.String.LPad(v.Passed.000003,"0",7,v.Local.sID)
+
+		'WO-BOM
+		f.Intrinsic.Control.Case("17261")
+			v.Local.sType.Set("WO")
+			v.Local.sID.Set(v.Passed.009000)
+			v.Local.bBOM.Set(True)
+	f.Intrinsic.Control.EndSelect
+	
+	'1A
+	f.Intrinsic.Control.If(v.Local.sType,!=,"", "AND", v.Local.sID,!=,"")
+		f.ODBC.Connection!Con.OpenCompanyConnection
+			'check if order exists
+			'	 if not => insert
+			'2A
+			f.Intrinsic.Control.If(v.Local.sType,!=,"WO")
+				f.Intrinsic.String.Build("select * from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='{1}'", v.Local.sID, v.Local.sType, v.Local.sSQL)
+				f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sRet)
+				'3A
+				f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,True)
+					f.Intrinsic.String.Build("insert into GCG_6807_CREATED_DATE (ORDER_TYPE,IDENTIFIER,DATE_CREATED,GSSUSER) values('{0}','{1}','{2}','{3}')", v.Local.sType,v.Local.sID, v.Ambient.Now.FormatYYYY-MM-DD,v.Caller.User, v.Local.sSQL)
+					f.ODBC.Connection!Con.Execute(v.Local.sSQL)
+				'3B
+				f.Intrinsic.Control.EndIf
+			
+			'case when WO => get all WO with the same JOB
+			f.Intrinsic.Control.Else
+				'if Router WO => check and insert
+				'4A
+				f.Intrinsic.Control.If(v.Local.bBOM,=,False)
+					f.Intrinsic.String.Build("select * from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='{1}'", v.Local.sID, v.Local.sType, v.Local.sSQL)
+					f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sRet)
+					'5A
+					f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,True)
+						f.Intrinsic.String.Build("insert into GCG_6807_CREATED_DATE (ORDER_TYPE,IDENTIFIER,DATE_CREATED,GSSUSER) values('{0}','{1}','{2}','{3}')", v.Local.sType,v.Local.sID, v.Ambient.Now.FormatYYYY-MM-DD,v.Caller.User, v.Local.sSQL)
+						f.ODBC.Connection!Con.Execute(v.Local.sSQL)
+					'5B
+					f.Intrinsic.Control.EndIf
+				'if BOM WO => add parent and child WO
+				f.Intrinsic.Control.Else
+					f.Intrinsic.String.Build("select RTRIM(JOB) JOB, RTRIM(SUFFIX) SUFFIX from V_JOB_HEADER where RTRIM(JOB)='{0}'", v.Local.sID, v.Local.sSQL)
+					f.Data.Datatable.CreateFromSQL("dtWO", "Con", v.Local.sSQL, False)
+					'6A
+					f.Intrinsic.Control.If(v.DataTable.dtWO.RowCount,>,0)
+						f.Intrinsic.Control.For(v.Local.iCounter,0, v.DataTable.dtWO.RowCount--,1)
+							f.Intrinsic.String.Build("{0}-{1}", v.DataTable.dtWO(v.Local.iCounter).JOB!FieldValTrim, v.DataTable.dtWO(v.Local.iCounter).SUFFIX!FieldValTrim, v.Local.sFullWO)
+							f.Intrinsic.String.Build("select * from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='WO'", v.Local.sFullWO, v.Local.sSQL)
+							f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sRet)
+							f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,True)
+								f.Intrinsic.String.Build("insert into GCG_6807_CREATED_DATE (ORDER_TYPE,IDENTIFIER,DATE_CREATED,GSSUSER) values('{0}','{1}','{2}','{3}')", v.Local.sType,v.Local.sFullWO, v.Ambient.Now.FormatYYYY-MM-DD,v.Caller.User, v.Local.sSQL)
+								f.ODBC.Connection!Con.Execute(v.Local.sSQL)
+							f.Intrinsic.Control.EndIf
+						f.Intrinsic.Control.Next(v.Local.iCounter)
+					'6B
+					f.Intrinsic.Control.EndIf
+				
+				'4B
+				f.Intrinsic.Control.EndIf
+				
+			'2B
+			f.Intrinsic.Control.EndIf
+				
+		f.ODBC.Connection!Con.Close
+	'1B
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$nle$}$20220620093826310$}$kjzCRYkA6UEoRnCwndYnRZx+VYO5SvmIP7ixMk3MBJiX2UqKa2U1pPys6LAkRLyr
+Program.Sub.Comments.End
