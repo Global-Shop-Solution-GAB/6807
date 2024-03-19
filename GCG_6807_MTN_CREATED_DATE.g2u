@@ -1,0 +1,331 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create(BaseForm)
+Gui.Form..Caption("CUSTOMER HOLD-TYPE MAINTENANCE")
+Gui.Form..Size(507,720)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..AlwaysOnTop(False)
+Gui.Form..FontName("Tahoma")
+Gui.Form..FontSize(8.25)
+Gui.Form..ControlBox(True)
+Gui.Form..MaxButton(True)
+Gui.Form..MinButton(True)
+Gui.Form..MousePointer(0)
+Gui.Form..Moveable(True)
+Gui.Form..Sizeable(True)
+Gui.Form..ShowInTaskBar(True)
+Gui.Form..TitleBar(True)
+Gui.Form..Event(UnLoad,Unload)
+Gui.Form.GsgcCust.Create(GsGridControl)
+Gui.Form.GsgcCust.Enabled(True)
+Gui.Form.GsgcCust.Visible(True)
+Gui.Form.GsgcCust.Zorder(0)
+Gui.Form.GsgcCust.Size(498,634)
+Gui.Form.GsgcCust.Position(4,52)
+Gui.Form.GsgcCust.Anchor(15)
+Gui.Form.GsgcCust.Event(CellValueChanged,GsgcCust_CellValueChanged)
+Gui.Form.cmdAdd.Create(Button)
+Gui.Form.cmdAdd.Enabled(True)
+Gui.Form.cmdAdd.Visible(True)
+Gui.Form.cmdAdd.Zorder(0)
+Gui.Form.cmdAdd.Size(130,23)
+Gui.Form.cmdAdd.Position(107,18)
+Gui.Form.cmdAdd.Caption("ADD A NEW RECORD")
+Gui.Form.cmdAdd.FontName("Tahoma")
+Gui.Form.cmdAdd.FontSize(8.25)
+Gui.Form.cmdAdd.Event(Click,cmdAdd_Click)
+Gui.Form.cmdRefresh.Create(Button)
+Gui.Form.cmdRefresh.Enabled(True)
+Gui.Form.cmdRefresh.Visible(True)
+Gui.Form.cmdRefresh.Zorder(0)
+Gui.Form.cmdRefresh.Size(55,23)
+Gui.Form.cmdRefresh.Position(11,19)
+Gui.Form.cmdRefresh.Caption("REFRESH")
+Gui.Form.cmdRefresh.FontName("Tahoma")
+Gui.Form.cmdRefresh.FontSize(8.25)
+Gui.Form.cmdRefresh.Event(Click,Refresh)
+Gui.FormSelectType..Create(BaseForm)
+Gui.FormSelectType..Caption("Select Transaction Type")
+Gui.FormSelectType..Size(306,227)
+Gui.FormSelectType..MinX(0)
+Gui.FormSelectType..MinY(0)
+Gui.FormSelectType..Position(0,0)
+Gui.FormSelectType..AlwaysOnTop(False)
+Gui.FormSelectType..FontName("Tahoma")
+Gui.FormSelectType..FontSize(8.25)
+Gui.FormSelectType..ControlBox(True)
+Gui.FormSelectType..MaxButton(True)
+Gui.FormSelectType..MinButton(True)
+Gui.FormSelectType..MousePointer(0)
+Gui.FormSelectType..Moveable(True)
+Gui.FormSelectType..Sizeable(True)
+Gui.FormSelectType..ShowInTaskBar(True)
+Gui.FormSelectType..TitleBar(True)
+Gui.FormSelectType..Event(UnLoad,FormSelectType_UnLoad)
+Gui.FormSelectType.ddlSelectType.Create(DropDownList)
+Gui.FormSelectType.ddlSelectType.Enabled(True)
+Gui.FormSelectType.ddlSelectType.Visible(True)
+Gui.FormSelectType.ddlSelectType.Zorder(0)
+Gui.FormSelectType.ddlSelectType.Size(187,20)
+Gui.FormSelectType.ddlSelectType.Position(60,74)
+Gui.FormSelectType.ddlSelectType.FontName("Tahoma")
+Gui.FormSelectType.ddlSelectType.FontSize(8.25)
+Gui.FormSelectType.cmdSelectType.Create(Button)
+Gui.FormSelectType.cmdSelectType.Enabled(True)
+Gui.FormSelectType.cmdSelectType.Visible(True)
+Gui.FormSelectType.cmdSelectType.Zorder(0)
+Gui.FormSelectType.cmdSelectType.Size(75,23)
+Gui.FormSelectType.cmdSelectType.Position(118,135)
+Gui.FormSelectType.cmdSelectType.Caption("OK")
+Gui.FormSelectType.cmdSelectType.FontName("Tahoma")
+Gui.FormSelectType.cmdSelectType.FontSize(8.25)
+Gui.FormSelectType.cmdSelectType.Event(Click,cmdSelectType_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+'ARC#6807
+'Customer: Willington Nameplate
+'		June 2022, Nam Le
+
+'The customer is wanting to track creation dates of Quotes, Sales Orders, Work Orders, and Purchase Orders to satisfy a requirement by their Quality process and KPI measurements.
+
+'In this project we will add:
+'	A custom datatable to store information for Created Date for transactions Quotes, Sales Order, Work Order, Purchase Order
+'	A new field in each transaction's header screen to display the Created Date
+
+'This script manage the maintenance for created date
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+
+	Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+	
+	'Getdata
+	f.Intrinsic.Control.CallSub(GetData)
+	'Format Grid
+	f.Intrinsic.Control.CallSub(FormatGrid)
+	
+	'Display
+	gui.Form..Show
+
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+'refresh form
+Program.Sub.Refresh.Start
+f.Intrinsic.Control.Try
+	gui.Form.GsgcCust.Visible(False)
+	
+	'Getdata
+	f.Intrinsic.Control.CallSub(GetData)
+	'Format Grid
+	f.Intrinsic.Control.CallSub(FormatGrid)
+	
+	gui.Form.GsgcCust.Visible(True)
+	gui.Form..Enabled(True)
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.Refresh.End
+
+'Get Data
+Program.Sub.GetData.Start
+f.Intrinsic.Control.Try
+	v.Local.sSQL.Declare(String)
+	v.Local.sSQL.Set("select RTRIM(ORDER_TYPE) ORDER_TYPE, RTRIM(IDENTIFIER) IDENTIFIER, DATE_CREATED, RTRIM(GSSUSER) GSSUSER from GCG_6807_CREATED_DATE order by ORDER_TYPE, IDENTIFIER")
+	
+	f.ODBC.Connection!Con.OpenCompanyConnection
+		f.Intrinsic.Control.If(v.DataTable.dtOrders.Exists)
+			f.Data.Datatable.Close("dtOrders")
+		f.Intrinsic.Control.EndIf
+		f.Data.Datatable.CreateFromSQL("dtOrders", "Con", v.Local.sSQL, True)
+	f.ODBC.Connection!Con.Close
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.GetData.End
+
+'Format
+Program.Sub.FormatGrid.Start
+f.Intrinsic.Control.Try
+	gui.Form.GsgcCust.AddGridviewFromDatatable("gvOrders", "dtOrders")
+	gui.Form.GsgcCust.SetGridviewProperty("gvOrders", v.Enum.GridViewPropertyNames!EnableAppearanceEvenRow, True)
+	gui.Form.GsgcCust.SetGridviewProperty("gvOrders", v.Enum.GridViewPropertyNames!Editable, True)
+	gui.Form.GsgcCust.SetGridviewProperty("gvOrders", v.Enum.GridViewPropertyNames!ReadOnly, False)
+	gui.Form.GsgcCust.SetGridviewProperty("gvOrders", v.Enum.GridViewPropertyNames!SuppressNothingDates, True)
+	gui.Form.GsgcCust.SetGridviewProperty("gvOrders", "OptionsViewShowAutoFilterRow", true)
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!Caption, "ORDER TYPE")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!Caption, "IDENTIFIER")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!Caption, "LAST CHANGED BY")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!Caption, "CREATED DATE")
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!HeaderFontBold, True)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!HeaderFontBold, True)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!HeaderFontBold, True)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!HeaderFontBold, True)
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!HeaderHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!HeaderHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!HeaderHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!HeaderHAlignment, "Center")
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!DisplayCustomDateTime, "d")
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!CellHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!CellHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!CellHAlignment, "Center")
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!CellHAlignment, "Center")
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!MinWidth, 80)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!MinWidth, 100)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!MinWidth, 100)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!MinWidth, 80)
+	
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "ORDER_TYPE", v.Enum.ColumnPropertyNames!AllowEdit, False)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "IDENTIFIER", v.Enum.ColumnPropertyNames!AllowEdit, False)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "GSSUSER", v.Enum.ColumnPropertyNames!AllowEdit, False)
+	gui.Form.GsgcCust.SetColumnProperty("gvOrders", "DATE_CREATED", v.Enum.ColumnPropertyNames!AllowEdit, True)
+	
+	gui.Form.GsgcCust.MainView("gvOrders")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.FormatGrid.End
+
+'Catch
+Program.Sub.Catching.Start
+f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+Program.Sub.Catching.End
+
+'Unload
+Program.Sub.Unload.Start
+f.Intrinsic.Control.End
+Program.Sub.Unload.End
+
+'Add btn click
+Program.Sub.cmdAdd_Click.Start
+f.Intrinsic.Control.Try
+	gui.Form..Enabled(False)
+	gui.FormSelectType.ddlSelectType.ClearItems
+	gui.FormSelectType.ddlSelectType.AddItem("Add a new PO", 0)
+	gui.FormSelectType.ddlSelectType.AddItem("Add a new QT", 1)
+	gui.FormSelectType.ddlSelectType.AddItem("Add a new SO", 2)
+	gui.FormSelectType.ddlSelectType.AddItem("Add a new WO", 3)
+	gui.FormSelectType..Visible(True)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdAdd_Click.End
+
+'Cell Value Changed
+Program.Sub.GsgcCust_CellValueChanged.Start
+f.Intrinsic.Control.Try
+	v.Local.sSQL.Declare(String)
+	v.Local.sType.Declare(String)
+	v.Local.sID.Declare(String)
+	v.Local.sDate.Declare(String)
+	
+	v.Local.sID.Set(v.DataTable.dtOrders(v.Args.RowIndex).IDENTIFIER!FieldValTrim)
+	v.Local.sType.Set(v.DataTable.dtOrders(v.Args.RowIndex).ORDER_TYPE!FieldValTrim)
+	f.Intrinsic.String.Format(v.DataTable.dtOrders(v.Args.RowIndex).DATE_CREATED!FieldVal,"YYYY-MM-DD", v.Local.sDate)
+	
+	f.Intrinsic.String.Build("update GCG_6807_CREATED_DATE set DATE_CREATED='{0}', GSSUSER='{3}' where RTRIM(ORDER_TYPE)='{1}' and RTRIM(IDENTIFIER)='{2}'", v.Local.sDate, v.Local.sType, v.Local.sID, v.Caller.User, v.Local.sSQL)
+	f.ODBC.Connection!Con.OpenCompanyConnection
+		f.ODBC.Connection!Con.Execute(v.Local.sSQL)
+	f.ODBC.Connection!Con.Close
+	
+	f.Intrinsic.UI.Msgbox("Saved!")
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+	f.ODBC.Connection!Con.Close
+f.Intrinsic.Control.EndTry
+Program.Sub.GsgcCust_CellValueChanged.End
+
+'form select unload
+Program.Sub.FormSelectType_UnLoad.Start
+f.Intrinsic.Control.Try
+	gui.FormSelectType..Visible(False)
+	gui.Form..Enabled(True)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.FormSelectType_UnLoad.End
+
+Program.Sub.cmdSelectType_Click.Start
+f.Intrinsic.Control.Try
+	v.Local.lSelected.Declare(Long)
+	v.Local.sListIndex.Declare(String)
+	v.Local.sValue.Declare(String)
+	v.Local.sSQL.Declare(String)
+	v.Local.sID.Declare(String)
+	v.Local.sType.Declare(String)
+	v.Local.sRet.Declare(String)
+	
+	v.Local.sListIndex.Set(v.Screen.FormSelectType!ddlSelectType.ListIndex)
+	v.Local.sValue.Set(v.Screen.FormSelectType!ddlSelectType.Value)
+	
+	f.Intrinsic.Control.If(v.Local.sValue,=,"")
+		f.Intrinsic.UI.Msgbox("Please Select a Type.")
+		f.Intrinsic.Control.ExitSub
+	f.Intrinsic.Control.Else
+		gui.FormSelectType..Visible(False)
+		F.ODBC.Connection!con.OpenCompanyConnection
+	
+		f.Intrinsic.Control.SelectCase(v.Local.sListIndex)
+			f.Intrinsic.Control.Case("0")
+				v.Local.sType.Set("PO")
+				v.Local.sSQL.Set("select distinct RTRIM(PURCHASE_ORDER) PO_NUMBER, V.NAME_VENDOR from V_PO_HEADER P left join V_VENDOR_MASTER V on P.VENDOR = V.VENDOR order by PO_NUMBER")
+				F.Intrinsic.UI.Browser("PO", "con", v.Local.sSQL, "PO_NUMBER*!*VENDOR", "80*!*140", V.Local.sRet)
+			f.Intrinsic.Control.Case("1")
+				v.Local.sType.Set("QT")
+				v.Local.sSQL.Set("select RTRIM(QUOTE_NO) QUOTE_NUMBER, C.NAME_CUSTOMER from V_QUOTE_HEADER Q left join V_CUSTOMER_MASTER C on Q.CUSTOMER = C.CUSTOMER order by QUOTE_NUMBER")
+				F.Intrinsic.UI.Browser("PO", "con", v.Local.sSQL, "QT_NUMBER*!*CUSTOMER", "80*!*140", V.Local.sRet)
+			f.Intrinsic.Control.Case("2")
+				v.Local.sType.Set("SO")
+				v.Local.sSQL.Set("select RTRIM(ORDER_NO) ORDER_NUMBER, C.NAME_CUSTOMER from V_ORDER_HEADER Q left join V_CUSTOMER_MASTER C on Q.CUSTOMER = C.CUSTOMER order by ORDER_NUMBER")
+				F.Intrinsic.UI.Browser("PO", "con", v.Local.sSQL, "SO_NUMBER*!*CUSTOMER", "80*!*140", V.Local.sRet)
+			f.Intrinsic.Control.Case("3")
+				v.Local.sType.Set("WO")
+				v.Local.sSQL.Set("select RTRIM(JOB)+'-'+RTRIM(SUFFIX) WORKORDER, C.NAME_CUSTOMER from V_JOB_HEADER Q left join V_CUSTOMER_MASTER C on Q.CUSTOMER = C.CUSTOMER order by WORKORDER")
+				F.Intrinsic.UI.Browser("WO", "con", v.Local.sSQL, "WO_NUMBER*!*CUSTOMER", "80*!*140", V.Local.sRet)
+		f.Intrinsic.Control.EndSelect
+		
+		f.Intrinsic.Control.If(v.Local.sRet,!=, "***CANCEL***")
+			f.Intrinsic.String.Split(v.Local.sRet, "*!*", v.Local.sRet)
+			v.Local.sID.Set(v.Local.sRet(0))
+			f.Intrinsic.String.Build("select * from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='{1}'", v.Local.sID, v.Local.sType, v.Local.sSQL)
+			f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sRet)
+			f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,True)
+				f.Intrinsic.String.Build("insert into GCG_6807_CREATED_DATE (ORDER_TYPE,IDENTIFIER,DATE_CREATED,GSSUSER) values('{0}','{1}','{2}','{3}')", v.Local.sType,v.Local.sID, v.Ambient.Now.FormatYYYY-MM-DD,v.Caller.User, v.Local.sSQL)
+				f.ODBC.Connection!Con.Execute(v.Local.sSQL)
+			f.Intrinsic.Control.Else
+				f.Intrinsic.String.Build("{0} {1} Already Exists in the List.", v.Local.sType, v.Local.sID, v.Local.sSQL)
+				F.ODBC.Connection!con.Close
+				f.Intrinsic.UI.Msgbox(v.Local.sSQL)
+				gui.FormSelectType..Visible(True)
+				f.Intrinsic.Control.ExitSub
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+		
+		F.ODBC.Connection!con.Close
+		f.Intrinsic.Control.CallSub(Refresh)
+	f.Intrinsic.Control.EndIf
+	
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(Catching)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdSelectType_Click.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$nle$}$20220620125906622$}$kjzCRYkA6UEoRnCwndYnRZx+VYO5SvmIj6rtZPGZAgowRXZa8iwrpqPWgTGmU40+
+Program.Sub.Comments.End
