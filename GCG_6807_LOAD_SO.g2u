@@ -1,0 +1,90 @@
+﻿Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+'ARC#6807
+'Customer: Willington Nameplate
+'		June 2022, Nam Le
+
+'The customer is wanting to track creation dates of Quotes, Sales Orders, Work Orders, and Purchase Orders to satisfy a requirement by their Quality process and KPI measurements.
+
+'In this project we will add:
+'	A custom datatable to store information for Created Date for transactions Quotes, Sales Order, Work Order, Purchase Order
+'	A new field in each transaction's header screen to display the Created Date
+
+'this script loads created date to SO screen
+'hook 11565
+
+'Modified by BixRB - 18 Jan 2023
+'Add another set of labels to show the Created User alongside the Created Date
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	'Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+	v.Local.sSQL.Declare(String)
+	v.Local.sTemp.Declare(String)
+	v.Local.sFullSO.Declare(String)
+	
+	f.Intrinsic.Control.If(v.Passed.000003,!=,"")
+		
+		v.Passed.GAB-LBL-1.Set("")
+		v.Passed.GAB-LBL-2.Set("Created Date")
+		'BixRB
+		v.Passed.GAB-LBL-3.Set("")
+		v.Passed.GAB-LBL-4.Set("Created User")
+		
+		f.Intrinsic.String.LPad(v.Passed.000003, "0", 7, v.Local.sFullSO)
+		'BixRB - modified SQL to bring in GSSUSER
+		f.Intrinsic.String.Build("select DATE_CREATED, rtrim(GSSUSER) from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='SO'", v.Local.sFullSO, v.Local.sSQL)
+		f.ODBC.Connection!Con.OpenCompanyConnection
+		f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sTemp)
+		
+		f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,False)
+			F.Intrinsic.String.Split(V.Local.sTemp,"*!*",V.Local.sTemp)
+			f.Intrinsic.String.Format(v.Local.sTemp(0),"MM/DD/YYYY",v.Local.sTemp(0))
+			'write to textbox
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "LOCK", 0)
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "HIDE", 0)
+			'BixRB
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-3, "LOCK", 0)
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-3, "HIDE", 0)
+			
+			'BixRB - had to resize and reposition the labels so they don't block other controls
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PL", 465)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PT", 545)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PW", 65)
+			
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PL", 465)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PT", 530)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PW", 65)
+			
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-3", "PL", 535)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-3", "PT", 545)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-3", "PW", 65)
+			
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-4", "PL", 535)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-4", "PT", 530)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-4", "PW", 65)
+			
+			'BixRB - Need to resize shipped date label so it doesn't block custom labels
+			f.Intrinsic.Variable.SetProperty("000101", "PW", 80)
+			
+			v.Passed.GAB-LBL-1.Set(v.Local.sTemp(0))
+			v.Passed.GAB-LBL-3.Set(v.Local.sTemp(1))
+			
+			
+			
+		f.Intrinsic.Control.EndIf
+		
+		f.ODBC.Connection!Con.Close
+	
+	f.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8405.30089$}$1
+${$6$}$bbaker$}$20230118110030346$}$pM7xsHplA2E9VCTenDTJ47gi1rF/t66WjskxWzdPHL1JJhMCbRhzryMlwBhwGxCmhrXkRIHSWx4=
+Program.Sub.Comments.End
