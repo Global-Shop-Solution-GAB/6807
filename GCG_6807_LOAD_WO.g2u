@@ -1,0 +1,64 @@
+﻿Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+'ARC#6807
+'Customer: Willington Nameplate
+'		June 2022, Nam Le
+
+'The customer is wanting to track creation dates of Quotes, Sales Orders, Work Orders, and Purchase Orders to satisfy a requirement by their Quality process and KPI measurements.
+
+'In this project we will add:
+'	A custom datatable to store information for Created Date for transactions Quotes, Sales Order, Work Order, Purchase Order
+'	A new field in each transaction's header screen to display the Created Date
+
+'this script loads created date to WO screen
+'hook 16660  
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+	v.Local.sSQL.Declare(String)
+	v.Local.sTemp.Declare(String)
+	v.Local.sFullSO.Declare(String)
+	
+	f.Intrinsic.Control.If(v.Passed.000003,!=,"")
+		f.Intrinsic.String.Build("{0}-{1}", v.Passed.000003, v.Passed.000004, v.Local.sFullSO)
+		f.Intrinsic.String.Build("select DATE_CREATED from GCG_6807_CREATED_DATE where RTRIM(IDENTIFIER)='{0}' and RTRIM(ORDER_TYPE)='WO'", v.Local.sFullSO, v.Local.sSQL)
+		f.ODBC.Connection!Con.OpenCompanyConnection
+		f.ODBC.Connection!Con.ExecuteAndReturn(v.Local.sSQL, v.Local.sTemp)
+		
+		f.Intrinsic.Control.If(v.Ambient.ExecuteAndReturnEOF,=,False)
+			v.Passed.GAB-LBL-1.Set("")
+			v.Passed.GAB-LBL-2.Set("Created Date")
+			f.Intrinsic.String.Format(v.Local.sTemp,"MM/DD/YYYY",v.Local.sTemp)
+			'write to textbox
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "LOCK", 0)
+			f.Intrinsic.UI.ChangeCallerProperty(v.Passed.GAB-LBL-1, "HIDE", 0)
+			
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PL", 220)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PT", 16)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-1", "PW", 70)
+			
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PL", 220)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PT", 1)
+			f.Intrinsic.Variable.SetProperty("GAB-LBL-2", "PW", 70)
+			
+			v.Passed.GAB-LBL-1.Set(v.Local.sTemp)
+			
+			
+			
+		f.Intrinsic.Control.EndIf
+		
+		f.ODBC.Connection!Con.Close
+	
+	f.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Comments.Start
+${$5$}$3.0.0.0$}$1
+${$6$}$nle$}$20220620103327797$}$kjzCRYkA6UEoRnCwndYnRZx+VYO5SvmIbmXD3gjnWwviiQ5KultXmmrceEG8VNl0
+Program.Sub.Comments.End
